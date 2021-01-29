@@ -75,6 +75,7 @@ def login(username: str, password: str) -> tuple:
                         use_ssl=use_ssl, tls=tls)
     except Exception as e:
         error = "Error connecting to LDAP server: %s" % e
+        print(error)
         raise LDAPConnectionError({"error_message": error})
 
     # authenticate as service if credentials provided, anonymously otherwise
@@ -96,6 +97,7 @@ def login(username: str, password: str) -> tuple:
                        user=service_user, password=service_pass, authentication=service_auth)
     except Exception as e:
         error = "Error connecting to LDAP server: %s" % e
+        print(error)
         raise LDAPConnectionError({"error_message": error})
 
     # search for user-provided login
@@ -112,6 +114,7 @@ def login(username: str, password: str) -> tuple:
                  paged_size=5)
     except Exception as e:
         error = "LDAP login incorrect: %s" % e
+        print(error)
         raise LDAPUserLoginError({"error_message": error})
 
     # we are only interested in user objects in the response
@@ -141,6 +144,7 @@ def login(username: str, password: str) -> tuple:
                    user=dn, password=password)
     except Exception as e:
         error = "LDAP bind failed: %s" % e
+        print(error)
         raise LDAPUserLoginError({"error_message": error})
 
     # LDAP binding successful, but some values might have changed, or
