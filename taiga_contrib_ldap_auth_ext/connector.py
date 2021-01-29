@@ -75,8 +75,7 @@ def login(username: str, password: str) -> tuple:
                         use_ssl=use_ssl, tls=tls)
     except Exception as e:
         error = "Error connecting to LDAP server: %s" % e
-        print(error)
-        raise Exception({"error_message": error})
+        raise LDAPConnectionError({"error_message": error})
 
     # authenticate as service if credentials provided, anonymously otherwise
     if BIND_DN is not None and BIND_DN != '':
@@ -97,8 +96,7 @@ def login(username: str, password: str) -> tuple:
                        user=service_user, password=service_pass, authentication=service_auth)
     except Exception as e:
         error = "Error connecting to LDAP server: %s" % e
-        print(error)
-        raise Exception({"error_message": error})
+        raise LDAPConnectionError({"error_message": error})
 
     # search for user-provided login
     search_filter = '(|(%s=%s)(%s=%s))' % (
@@ -114,24 +112,23 @@ def login(username: str, password: str) -> tuple:
                  paged_size=5)
     except Exception as e:
         error = "LDAP login incorrect: %s" % e
-        print(error)
-        raise Exception({"error_message": error})
+        raise LDAPUserLoginError({"error_message": error})
 
     # we are only interested in user objects in the response
     c.response = [r for r in c.response if 'raw_attributes' in r and 'dn' in r]
     # stop if no search results
     if not c.response:
-        raise Exception({"error_message": "LDAP login not found"})
+        raise LDAPUserLoginError({"error_message": "LDAP login not found"})
 
     # handle multiple matches
     if len(c.response) > 1:
-        raise Exception(
+        raise LDAPUserLoginError(
             {"error_message": "LDAP login could not be determined."})
 
     # handle missing mandatory attributes
     raw_attributes = c.response[0].get('raw_attributes')
     #if raw_attributes.get(USERNAME_ATTRIBUTE) or raw_attributes.get(EMAIL_ATTRIBUTE) or raw_attributes.get(FULL_NAME_ATTRIBUTE):
-    #    raise Exception({"error_message": "LDAP login is invalid."})
+    #    raise LDAPUserLoginError({"error_message": "LDAP login is invalid."})
 
     # attempt LDAP bind
     username = raw_attributes.get(USERNAME_ATTRIBUTE)[0].decode('utf-8')
@@ -144,8 +141,7 @@ def login(username: str, password: str) -> tuple:
                    user=dn, password=password)
     except Exception as e:
         error = "LDAP bind failed: %s" % e
-        print(error)
-        raise Exception({"error_message": error})
+        raise LDAPUserLoginError({"error_message": error})
 
     # LDAP binding successful, but some values might have changed, or
     # this is the user's first login, so return them
